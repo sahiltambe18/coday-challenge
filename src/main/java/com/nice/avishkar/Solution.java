@@ -29,7 +29,7 @@ public class Solution {
 					secondMaxVotes =  maxVotes ;
 					winner = candidateName;
 					maxVotes = votes;
-				} else if (candidateVotes.getCandidateName().equals("NOTA") && votes > secondMaxVotes) {
+				} else if (!candidateVotes.getCandidateName().equals("NOTA") && votes > secondMaxVotes) {
 					secondMaxVotes = votes;
 				}
 
@@ -146,20 +146,20 @@ public class Solution {
 		}
 	}
 
-//	public static void main(String[] args) {
-//
-//		System.out.println("hello Sahil");
-//
-//		String votingFilePath = "src/main/resources/votingFile.csv";
-//		String candidateFilePath =  "src/main/resources/candidateFile.csv";
-//
-//
-//		// Create Path objects for the candidate file and voting file
-//		Path candidatePath = Paths.get(candidateFilePath);
-//		Path votingPath = Paths.get(votingFilePath);
-//		Solution s = new Solution();
-//		s.execute(candidatePath , votingPath);
-//	}
+	public static void main(String[] args) {
+
+		System.out.println("hello Sahil");
+
+		String votingFilePath = "src/main/resources/votingFile.csv";
+		String candidateFilePath =  "src/main/resources/candidateFile.csv";
+
+
+		// Create Path objects for the candidate file and voting file
+		Path candidatePath = Paths.get(candidateFilePath);
+		Path votingPath = Paths.get(votingFilePath);
+		Solution s = new Solution();
+		s.execute(candidatePath , votingPath);
+	}
 
 }
 
