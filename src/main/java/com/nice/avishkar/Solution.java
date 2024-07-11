@@ -10,52 +10,60 @@ import java.util.AbstractMap.SimpleEntry;
 
 
 public class Solution {
-	private List<ConstituencyResult> constituencyResultCalculate(Map<String, Map<String,CandidateVotes>> candidateMap){
+	private List<ConstituencyResult> constituencyResultCalculate(Map<String, List<CandidateVotes>> candidateMap){
 		List<ConstituencyResult> result = new ArrayList<>();
-		for(Map.Entry<String, Map<String,CandidateVotes>> entry: candidateMap.entrySet()){
+		for (Map.Entry<String, List<CandidateVotes>> entry : candidateMap.entrySet()) {
+			String constituencyName = entry.getKey();
+			List<CandidateVotes> candidateVotesList = entry.getValue();
 
 			String winner = "";
 			long maxVotes = 0;
 			long secondMaxVotes = 0;
-			List<CandidateVotes> votesList = new ArrayList<>();
-			ConstituencyResult constituency = new ConstituencyResult();
 
-			for(Map.Entry<String, CandidateVotes> candidateEntry: entry.getValue().entrySet()){
-				CandidateVotes candidateVotes = candidateEntry.getValue();
+			for (CandidateVotes candidateVotes : candidateVotesList) {
 				long votes = candidateVotes.getVotes();
 				String candidateName = candidateVotes.getCandidateName();
 
-				if (!candidateVotes.getCandidateName().equals("NOTA") &&  votes >= maxVotes) {
-					secondMaxVotes =  maxVotes ;
+				if (!candidateName.equals("NOTA") && votes >= maxVotes) {
+					secondMaxVotes = maxVotes;
 					winner = candidateName;
 					maxVotes = votes;
-				} else if (!candidateVotes.getCandidateName().equals("NOTA") && votes > secondMaxVotes) {
+				} else if (!candidateName.equals("NOTA") && votes > secondMaxVotes) {
 					secondMaxVotes = votes;
 				}
-
-				votesList.add(candidateVotes);
 			}
-			if (maxVotes==secondMaxVotes){
+
+			if (maxVotes == secondMaxVotes) {
 				winner = "NO_WINNER";
 			}
-			votesList.sort((c1, c2) -> Long.compare(c2.getVotes(), c1.getVotes()));
-			constituency.setConstituencyName(entry.getKey());
-			constituency.setCandidateList(votesList);
-			constituency.setWinnerName(winner);
 
-			result.add(constituency);
+			candidateVotesList.sort((a, b) -> {
+				int compareVotes = Long.compare(b.getVotes(), a.getVotes());
 
+				if (compareVotes == 0) {
+					return a.getCandidateName().compareTo(b.getCandidateName());
+				}
+
+				return compareVotes;
+			});
+
+
+			ConstituencyResult constituencyResult = new ConstituencyResult();
+			constituencyResult.setConstituencyName(constituencyName);
+			constituencyResult.setWinnerName(winner);
+			constituencyResult.setCandidateList(candidateVotesList);
+
+			result.add(constituencyResult);
 		}
 		return result;
+
 	}
 
-
 	public ElectionResult execute(Path candidateFile, Path votingFile) {
-		Map<String, Map<String,CandidateVotes>> candidateMap = readCandidates(candidateFile);
+		Map<String, List<CandidateVotes>> candidateMap = readCandidates(candidateFile);
 		calculateVotes(votingFile , candidateMap);
 
 		List<ConstituencyResult> constituencyResult = constituencyResultCalculate(candidateMap);
-
 
 
 		ElectionResult resultData = new ElectionResult(constituencyResult);
@@ -63,10 +71,10 @@ public class Solution {
 		return resultData;
 	}
 
-	private Map<String, Map<String,CandidateVotes>> readCandidates(Path candidateFile) {
+	private Map<String, List<CandidateVotes>> readCandidates(Path candidateFile) {
 
 
-		Map<String, Map<String,CandidateVotes>> candidateMap = new HashMap<>();
+		Map<String, List<CandidateVotes>> candidateMap = new HashMap<>();
 
 		BufferedReader reader = null;
 		String line = "";
@@ -77,13 +85,13 @@ public class Solution {
 
 				String constituency = row[0].trim();
 				String candidateName = row[1].trim();
-				candidateMap.putIfAbsent(constituency, new HashMap<>());
-				candidateMap.get(constituency).put(candidateName , new CandidateVotes(candidateName , 0));
+				candidateMap.putIfAbsent(constituency, new ArrayList<>());
+				candidateMap.get(constituency).add(new CandidateVotes(candidateName , 0));
 
 			}
 
-			for(Map<String,CandidateVotes> constituencyMap : candidateMap.values()){
-				constituencyMap.put("NOTA", new CandidateVotes("NOTA",0));
+			for(List<CandidateVotes> candidatesMap : candidateMap.values()){
+				candidatesMap.add( new CandidateVotes("NOTA",0));
 			}
 		}
 		catch (Exception e){
@@ -95,19 +103,27 @@ public class Solution {
 		return candidateMap;
 	}
 
-	private void removeVoteFromCandidate(String constituency, String candidateName, Map<String, Map<String,CandidateVotes>> candidateMap) {
-		Map<String,CandidateVotes> constituencyVotes = candidateMap.get(constituency);
-		CandidateVotes candidate = constituencyVotes.get(candidateName);
-		candidate.setVotes(candidate.getVotes()-1);
+	private void removeVoteFromCandidate(String constituency, String candidateName, Map<String, List<CandidateVotes>> candidateMap) {
+		List<CandidateVotes> constituencyVotes = candidateMap.get(constituency);
+		for (CandidateVotes candidate : constituencyVotes) {
+			if (candidate.getCandidateName().equals(candidateName)) {
+				candidate.setVotes(candidate.getVotes() - 1);
+				break;
+			}
+		}
 	}
 
-	private void addVoteFromCandidate(String constituency, String candidateName, Map<String, Map<String,CandidateVotes>> candidateMap) {
-		Map<String,CandidateVotes> constituencyVotes = candidateMap.get(constituency);
-		CandidateVotes candidate = constituencyVotes.get(candidateName);
-		candidate.setVotes(candidate.getVotes()+1);
+	private void addVoteFromCandidate(String constituency, String candidateName, Map<String, List<CandidateVotes>> candidateMap) {
+		List<CandidateVotes> constituencyVotes = candidateMap.get(constituency);
+		for (CandidateVotes candidate : constituencyVotes) {
+			if (candidate.getCandidateName().equals(candidateName)) {
+				candidate.setVotes(candidate.getVotes() + 1);
+				break;
+			}
+		}
 	}
 
-	private void calculateVotes(Path votingFile , Map<String, Map<String,CandidateVotes>> candidateMap){
+	private void calculateVotes(Path votingFile , Map<String, List<CandidateVotes>> candidateMap){
 
 		Map<String , SimpleEntry<String, String>> voted = new HashMap<>() ;
 		Set<String> frauds = new HashSet<>();
@@ -117,6 +133,7 @@ public class Solution {
 		try {
 			reader = new BufferedReader(new FileReader(votingFile.toFile()));
 			while((line = reader.readLine())!=null){
+
 				String[] row = line.split(",");
 
 				String voterId = row[0].trim();
@@ -146,20 +163,7 @@ public class Solution {
 		}
 	}
 
-	public static void main(String[] args) {
 
-		System.out.println("hello Sahil");
-
-		String votingFilePath = "src/main/resources/votingFile.csv";
-		String candidateFilePath =  "src/main/resources/candidateFile.csv";
-
-
-		// Create Path objects for the candidate file and voting file
-		Path candidatePath = Paths.get(candidateFilePath);
-		Path votingPath = Paths.get(votingFilePath);
-		Solution s = new Solution();
-		s.execute(candidatePath , votingPath);
-	}
 
 }
 
